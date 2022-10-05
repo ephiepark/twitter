@@ -1,11 +1,15 @@
 import { WithFirebaseApiProps, withFirebaseApi } from "../Firebase";
 import { Box, Stack, TextField, Button } from "@mui/material";
 import { useState } from "react";
+import { useAppSelector } from "../redux/hooks";
+import { RootState } from "../redux/store";
 
-const TweetInputField = () => {
+const TweetInputFieldBase = (props: WithFirebaseApiProps) => {
+  const currentUserId = useAppSelector((state: RootState) => state.user.userId);
   const [tweetContent, setTweetContent] = useState<string>('');
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
+    await props.firebaseApi.asyncCreateTweet(currentUserId!, tweetContent);
     setTweetContent("");
   };
 
@@ -23,6 +27,8 @@ const TweetInputField = () => {
     </Box>
   );
 };
+
+const TweetInputField = withFirebaseApi(TweetInputFieldBase);
 
 const MainFeedBase = (props: WithFirebaseApiProps) => {
   return (<>
