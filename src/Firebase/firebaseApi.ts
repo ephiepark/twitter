@@ -124,4 +124,10 @@ export default class FirebaseApi {
     const querySnapshot = await getDocs(q);
     return getTweetsFromQuerySnapshot(querySnapshot);
   };
+
+  asyncGetProfileFeed = async (userId: string): Promise<Array<TweetWithId>> => {
+    const q = query(collection(this.firestore, "tweets"), where("userId", "==", userId), orderBy("createdTime", "desc"));
+    const querySnapshot = await getDocs(q);
+    return getTweetsFromQuerySnapshot(querySnapshot);
+  };
 };
