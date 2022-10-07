@@ -1,11 +1,66 @@
 import { WithFirebaseApiProps, withFirebaseApi } from "../Firebase";
-import { Box, Stack, TextField, Button, CircularProgress, Typography } from "@mui/material";
+import { Button, CircularProgress, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useAppSelector } from "../redux/hooks";
 import { RootState } from "../redux/store";
-import { TweetWithId } from "../types";
+import { TweetWithId, UserInfo } from "../types";
 import Tweet from "./Tweet";
 import { useParams } from "react-router-dom";
+import EditProfile from "./EditProfile";
+
+const ProfileCardBase = (props: {
+  userId: string
+} & WithFirebaseApiProps) => {
+  const currentUserId = useAppSelector((state: RootState) => state.user.userId);
+  const currentUserInfo = useAppSelector((state: RootState) => state.user.userInfo.value);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
+  const [isEditProfile, setIsEditProfile] = useState<boolean>(false);
+
+  useEffect(() => {
+    props.firebaseApi.asyncGetUserInfo(props.userId).then((userInfo) => {
+      setUserInfo(userInfo);
+    });
+  }, [props.userId]);
+  useEffect(() => {
+    if (userInfo?.profilePicHandle == null) {
+      return;
+    }
+    props.firebaseApi.asyncGetURLFromHandle(userInfo!.profilePicHandle).then((url) => {
+      setProfilePicUrl(url);
+    })
+  }, [userInfo?.profilePicHandle]);
+
+  if (userInfo === null || profilePicUrl === null) {
+    return <CircularProgress />;
+  }
+
+  if (isEditProfile) {
+    return (<>
+      <EditProfile />
+      <Button onClick={() => {setIsEditProfile(false)}}>Done</Button>
+    </>);
+  }
+
+  let button = null;
+  if (currentUserId !== props.userId) {
+    const isFollowing = currentUserInfo!.following.includes(props.userId);
+    button = isFollowing ? <Button>Unfollow</Button> : <Button>Follow</Button>
+  } else {
+    button = <Button onClick={() => {
+      setIsEditProfile(true);
+    }}>Edit Profile</Button>;
+  }
+  return (<>
+    <img src={profilePicUrl} width={100} />
+    <Typography>
+      {'Username: ' + userInfo.username}
+    </Typography>
+    {button}
+  </>);
+};
+
+const ProfileCard = withFirebaseApi(ProfileCardBase);
 
 const ProfilePageBase = (props: WithFirebaseApiProps) => {
   const [tweets, setTweets] = useState<Array<TweetWithId> | null>(null);
@@ -30,6 +85,7 @@ const ProfilePageBase = (props: WithFirebaseApiProps) => {
     return <CircularProgress />;
   }
   return (<>
+    <ProfileCard userId={params.userId} />
     {tweets.map((tweet) => <Tweet key={tweet.id} tweet={tweet} />)}
   </>);
 }
